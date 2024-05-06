@@ -2,6 +2,7 @@
 export_presets.cfg
 Catapult.x86_64
 Catapult.exe
+Catapult
 *.translation
 *~lock*
 

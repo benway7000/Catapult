@@ -68,7 +68,7 @@ func refresh_available():
 	
 	for backup in FS.list_dir(Paths.save_backups):
 		var path = Paths.save_backups.plus_file(backup)
-		available.append(get_save_summary(path))
+		available.insert(0, get_save_summary(path))
 
 
 func restore(backup_index: int) -> void:
@@ -79,18 +79,25 @@ func restore(backup_index: int) -> void:
 	
 	var source_dir = available[backup_index]["path"]
 	var dest_dir = Paths.savegames
-	
+	var dest_temp_dir = Paths.savegames + "_deleteme"
+
 	emit_signal("backup_restoration_started")
 
 	if Directory.new().dir_exists(source_dir):
 		if Directory.new().dir_exists(dest_dir):
-			FS.rm_dir(dest_dir)
-			yield(FS, "rm_dir_done")
+			FS.rename_dir(dest_dir, dest_temp_dir)
+			yield(FS, "rename_dir_done")
+			Status.post("1 move_dir_done")
+			FS.rm_dir_aysnc(dest_temp_dir)
+			Status.post("2 called rm_dir_aysnc")
+			# yield(FS, "rm_dir_done")
 		
 		Directory.new().make_dir(dest_dir)
 		for world_zip in FS.list_dir(source_dir):
 			FS.extract(source_dir.plus_file(world_zip), dest_dir)
+			Status.post("3 called extract")
 			yield(FS, "extract_done")
+			Status.post("4 extract done")
 		
 		Status.post(tr("msg_backup_restored"))
 	else:

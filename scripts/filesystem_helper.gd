@@ -4,6 +4,7 @@ extends Node
 signal copy_dir_done
 signal rm_dir_done
 signal move_dir_done
+signal rename_dir_done
 signal extract_done
 signal zip_done
 
@@ -121,6 +122,10 @@ func rm_dir(abs_path: String) -> void:
 	tfe.collect()
 	emit_signal("rm_dir_done")
 
+func rm_dir_aysnc(abs_path: String) -> void:
+	# Recursively removes a directory.
+	var tfe = ThreadedFuncExecutor.new()
+	tfe.execute(self, "_rm_dir_internal", [abs_path])
 
 func _move_dir_internal(data: Array) -> void:
 	
@@ -159,6 +164,30 @@ func move_dir(abs_path: String, abs_dest: String) -> void:
 	tfe.collect()
 	emit_signal("move_dir_done")
 
+func _rename_dir_internal(data: Array) -> void:
+
+	var abs_path: String = data[0]
+	var abs_dest: String = data[1]
+	
+	var d = Directory.new()
+	var error = d.rename(abs_path, abs_dest)
+	if error:
+		Status.post(tr("msg_move_file_failed") % [abs_path, error], Enums.MSG_ERROR)
+		Status.post(tr("msg_move_file_failed_details") % [abs_path, abs_dest])
+
+	if error:
+		Status.post(tr("msg_move_rmdir_failed") % [abs_path, error], Enums.MSG_ERROR)
+	
+
+func rename_dir(abs_path: String, abs_dest: String) -> void:
+	# Moves the specified directory (this is move with rename, so the last
+	# part of dest is the new name for the directory).
+	
+	var tfe = ThreadedFuncExecutor.new()
+	tfe.execute(self, "_rename_dir_internal", [abs_path, abs_dest])
+	yield(tfe, "func_returned")
+	tfe.collect()
+	emit_signal("rename_dir_done")
 
 func extract(path: String, dest_dir: String) -> void:
 	# Extracts a .zip or .tar.gz archive using the system utilities on Linux
